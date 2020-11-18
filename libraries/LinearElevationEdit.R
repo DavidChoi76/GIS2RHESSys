@@ -3,6 +3,8 @@ options(scipen=999)
 arg=commandArgs(T)
 
 library(rgrass7)
+library(sp)
+tryCatch({ use_sp() },error=function(cond){message(cond)},warning=function(cond){message(cond)},finally={message("Please update the rgrass7 package on R")})
 rast = readRAST(arg[1:3])
 xx = rast@data[[1]]
 yy = rast@data[[2]]

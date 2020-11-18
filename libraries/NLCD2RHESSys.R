@@ -9,7 +9,9 @@
 	# read in rast
 	library(rgrass7)
 	library(rgdal)
-	
+	library(sp)
+	tryCatch({ use_sp() },error=function(cond){message(cond)},warning=function(cond){message(cond)},finally={message("Please update the rgrass7 package on R")})
+
 	# bounded by GIS mask
 	basinMap = 'basin'
 	rast0 = readRAST(basinMap)

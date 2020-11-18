@@ -6,7 +6,7 @@ library(XML)
 library(rgrass7)
 library(rgdal)
 gis = gmeta()
-
+tryCatch({ use_sp() },error=function(cond){message(cond)},warning=function(cond){message(cond)},finally={message("Please update the rgrass7 package on R")})
 DtoR = pi/180
 RtoD = 1/DtoR
 # bounded by GIS mask
@@ -48,12 +48,6 @@ RtoD = 1/DtoR
 	drainMap = 'drain'
 	rast4 = readRAST(drainMap)		
 		drain = abs(rast4@data[[1]][mask])
-		
-			
-	## ... ACTION maps
-	nlcdMAP = 'NLCD'
-	rast5 = readRAST(nlcdMAP)
-		nlcd = rast5@data[[1]][mask]
 		
 		
 	## assume grids are squares 
@@ -111,7 +105,6 @@ RtoD = 1/DtoR
 			strQ = sum(!is.na(stream[ii])),	#11 strQ (checking whether patch contains stream grids)
 			aveSlope = tan(mean(slope[ii])*DtoR),	#13 average slope
 			maxSlope = tan(max(slope[ii])*DtoR),	#14 max slope
-			irrigateQ = sum(nlcd[ii]%in%c(81,82,71,72),na.rm=T), # 23 lawnFrac for irrigate
 			mtnRoadQ = sum(!is.na(road[ii]))
 			);
 	})#tapply <--- this output is a list of c() in outputOrder
@@ -135,7 +128,6 @@ RtoD = 1/DtoR
 			hold2 = as.vector(gridSurroundRC[indirectEdgeIndex,jj]);
 			hold2[hold2%in% withinPatchGridRC] = -1
 	
-			#return <- c(table(hold[hold>0])* directEdge, table(hold2[hold2>0])* diagonalEdge) 
 			return <- c( tapply(hold[hold>0],hold[hold>0],length)*directEdge, tapply(hold2[hold2>0],hold2[hold2>0],length)*diagonalEdge) 
 			 
 		})
@@ -179,24 +171,9 @@ RtoD = 1/DtoR
 		index4neighbour = patchNeighbourPatchIndex[[ii]] 
 		 			 	
 		current_patch_info = patchInfo[[ii]]
-			# 0 = land (default)
-			# 1 = class::stream
-			# 2 = class::road
-			# 3 = actionSTORMDRAIN
-			# 5 = actionGWDRAIN
-			# 7 = actionRIPARIAN
-			# 11 = actionSEWER
-			# 13 = actionIRRIGRATION 
-			# 17 = actionPIPEDRAIN
-			
-		## actionCode is mostly for subsurface processes; surface storm drain see below.
-		actionCode = 	5.0 * # GW drain
-						ifelse(current_patch_info['irrigateQ']>0,13,1) # lawn irrigration
-
-							
 		drainage_type = ifelse(current_patch_info['strQ']>0, 1, # class::stream
 						ifelse(current_patch_info['mtnRoadQ']>0, 2, 
-						ifelse(actionCode>1, actionCode,0)
+						0 # LAND in default RHESSys
 						))			
 		
 				
@@ -269,21 +246,25 @@ RtoD = 1/DtoR
 			sprintf('%.2f',1.0),
 			sprintf('%.2f',0.0),
 			drainage_type, 
-			total_gamma, length(withinNeighbourRC),'\n', file=subsurfaceflow_table_buff,sep=' ')
+			total_gamma, length(withinNeighbourRC),'\n',
+            file=subsurfaceflow_table_buff,sep=' ')
 		
 		cat( paste(
 			allNeighbourInfo['patchID',],
 			allNeighbourInfo['zoneID',],
 			allNeighbourInfo['hillID',],
 			sprintf('%.5f',neighbor_frac_gamma),
-			sprintf('%.2f',allNeighbourInfo['sharedEdge',]/allNeighbourInfo['dist',]),
-			sprintf('%.2f',allNeighbourInfo['sharedEdge',]),sep=' '), file=subsurfaceflow_table_buff,sep='\n')
+			#sprintf('%.2f',allNeighbourInfo['sharedEdge',]/allNeighbourInfo['dist',]),
+			#sprintf('%.2f',allNeighbourInfo['sharedEdge',]),
+            sep=' '),
+            file=subsurfaceflow_table_buff,sep='\n')
 		
 		if(drainage_type==2) cat (
 			patch_info_lowest['patchID'],
 			patch_info_lowest['zoneID'],
 			patch_info_lowest['hillID'],
-			roadWidth,'\n', file=subsurfaceflow_table_buff,sep=' ')  #*current_patch_info[16]
+			roadWidth,'\n',
+            file=subsurfaceflow_table_buff,sep=' ')  #*current_patch_info[16]
 			
 
 	}# for loop ii 
